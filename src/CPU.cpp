@@ -726,3 +726,23 @@ void CPU::IRQ() {
         CyclesLeft = 7;
     }
 }
+
+void CPU::NMI() {
+    WriteByteToMemory(0x0100 + StackPointer, (ProgramCounter >> 8) & 0x00FF);
+    StackPointer--;
+    WriteByteToMemory(0x0100 + StackPointer, ProgramCounter & 0x00FF);
+    StackPointer--;
+
+    SetFlagInStatusRegister(StatusRegisterFlags::B, 0);
+    SetFlagInStatusRegister(StatusRegisterFlags::U, 1);
+    SetFlagInStatusRegister(StatusRegisterFlags::I, 1);
+    WriteByteToMemory(0x0100 + StackPointer, StatusRegister);
+    StackPointer--;
+
+    AbsoluteAddress = 0xFFFA;
+    Byte lowByte = FetchByteFromMemory(AbsoluteAddress);
+    Byte highByte = FetchByteFromMemory(AbsoluteAddress + 1);
+    ProgramCounter = (highByte << 8) | lowByte;
+
+    CyclesLeft = 8;
+}
