@@ -19,8 +19,8 @@ class CPU
         // Input Signals into the CPU are Public
         void Clock();
         void Reset();
-        void InterruptRequest();
-        void NonMaskableInterrupt();
+        void IRQ();
+        void NMI();
 
         void write(uint16_t addr, uint8_t data);
         uint8_t read(uint16_t addr);
