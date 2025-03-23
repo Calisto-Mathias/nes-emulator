@@ -13,8 +13,8 @@ class Bus;
 class CPU
 {
     public:
-        CPU() = default;
-        ~CPU() = default;
+        CPU();
+        ~CPU();
 
         // Input Signals into the CPU are Public
         void Clock();
@@ -39,19 +39,18 @@ class CPU
 
         // TODO: Change the return types to use std::optional<Byte> rather than Byte!
         // Addressing Modes
-        bool ImplicitMode();
-        bool AccumulatorMode();
-        bool ImmediateMode();
-        bool ZeroPageMode();
-        bool ZeroPageXMode();
-        bool ZeroPageYMode();
-        bool AbsoluteMode();
-        bool AbsoluteXMode();
-        bool AbsoluteYMode();
-        bool IndirectMode();
-        bool IndirectXMode();
-        bool IndirectYMode();
-        bool RelativeMode();
+        bool IMP();
+        bool IMM();
+        bool ZP0();
+        bool ZPX();
+        bool ZPY();
+        bool ABS();
+        bool ABX();
+        bool ABY();
+        bool IND();
+        bool IZX();
+        bool IZY();
+        bool REL();
 
         // Opcode Functions
         bool ADC(); // Add with Carry

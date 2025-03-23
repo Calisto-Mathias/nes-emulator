@@ -46,28 +46,21 @@ void CPU::WriteByteToMemory(uint16_t addr, uint8_t data)
 }
 
 bool
-CPU::ImplicitMode()
+CPU::IMP()
 {
     FetchedData = Accumulator; // Reset the Byte;
     return false;
 }
 
 bool
-CPU::ImmediateMode()
+CPU::IMM()
 {
     AbsoluteAddress = ProgramCounter++;
     return false;
 }
 
 bool
-CPU::AccumulatorMode()
-{
-    FetchedData = Accumulator;
-    return false;
-}
-
-bool
-CPU::ZeroPageMode()
+CPU::ZP0()
 {
     AbsoluteAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -76,7 +69,7 @@ CPU::ZeroPageMode()
 }
 
 bool
-CPU::ZeroPageXMode()
+CPU::ZPX()
 {
     AbsoluteAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -86,7 +79,7 @@ CPU::ZeroPageXMode()
 }
 
 bool
-CPU::ZeroPageYMode()
+CPU::ZPY()
 {
     AbsoluteAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -96,7 +89,7 @@ CPU::ZeroPageYMode()
 }
 
 bool
-CPU::AbsoluteMode()
+CPU::ABS()
 {
     Byte lowByte = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -107,7 +100,7 @@ CPU::AbsoluteMode()
 }
 
 bool
-CPU::AbsoluteXMode()
+CPU::ABX()
 {
     Byte lowByte = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -121,7 +114,7 @@ CPU::AbsoluteXMode()
 }
 
 bool
-CPU::AbsoluteYMode()
+CPU::ABY()
 {
     Byte lowByte = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -135,7 +128,7 @@ CPU::AbsoluteYMode()
 }
 
 bool
-CPU::IndirectMode()
+CPU::IND()
 {
     Byte lowByte = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -152,7 +145,7 @@ CPU::IndirectMode()
 }
 
 bool
-CPU::IndirectXMode()
+CPU::IZX()
 {
     Byte zeroPageBaseAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -169,7 +162,7 @@ CPU::IndirectXMode()
 }
 
 bool
-CPU::IndirectYMode()
+CPU::IZY()
 {
     Byte zeroPageBaseAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -184,7 +177,7 @@ CPU::IndirectYMode()
 }
 
 bool
-CPU::RelativeMode()
+CPU::REL()
 {
     RelativeAddress = FetchByteFromMemory(ProgramCounter);
     ++ProgramCounter;
@@ -199,7 +192,7 @@ CPU::RelativeMode()
 Byte
 CPU::FetchDataForOperation()
 {
-    if (OpcodeTable.at(CurrentOpcode).addressingMode != &CPU::ImplicitMode && OpcodeTable.at(CurrentOpcode).addressingMode != &CPU::AccumulatorMode) {
+    if (OpcodeTable.at(CurrentOpcode).addressingMode != &CPU::IMP) {
         FetchedData = FetchByteFromMemory(ProgramCounter);
     }
     return FetchedData;
@@ -258,7 +251,7 @@ bool CPU::ASL() {
     SetFlagInStatusRegister(StatusRegisterFlags::C, (TemporaryStorage & 0xFF00) > 0);
     SetFlagInStatusRegister(StatusRegisterFlags::Z, (TemporaryStorage & 0x00FF) == 0x00);
     SetFlagInStatusRegister(StatusRegisterFlags::N, TemporaryStorage & 0x80);
-    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::ImplicitMode || OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::AccumulatorMode)
+    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::IMP)
         Accumulator = TemporaryStorage & 0x00FF;
     else
         WriteByteToMemory(AbsoluteAddress, TemporaryStorage & 0x00FF);
@@ -523,7 +516,7 @@ bool CPU::LSR() {
     TemporaryStorage = FetchedData >> 1;
     SetFlagInStatusRegister(StatusRegisterFlags::Z, (TemporaryStorage & 0x00FF) == 0x0000);
     SetFlagInStatusRegister(StatusRegisterFlags::N, TemporaryStorage & 0x0080);
-    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::ImplicitMode || OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::AccumulatorMode)
+    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::IMP)
         Accumulator = TemporaryStorage & 0x00FF;
     else
         WriteByteToMemory(AbsoluteAddress, TemporaryStorage & 0x00FF);
@@ -577,7 +570,7 @@ bool CPU::ROL() {
     SetFlagInStatusRegister(StatusRegisterFlags::C, TemporaryStorage & 0xFF00);
     SetFlagInStatusRegister(StatusRegisterFlags::Z, (TemporaryStorage & 0x00FF) == 0x0000);
     SetFlagInStatusRegister(StatusRegisterFlags::N, TemporaryStorage & 0x0080);
-    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::ImplicitMode || OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::AccumulatorMode)
+    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::IMP)
         Accumulator = TemporaryStorage & 0x00FF;
     else
         WriteByteToMemory(AbsoluteAddress, TemporaryStorage & 0x00FF);
@@ -590,7 +583,7 @@ bool CPU::ROR() {
     SetFlagInStatusRegister(StatusRegisterFlags::C, FetchedData & 0x01);
     SetFlagInStatusRegister(StatusRegisterFlags::Z, (TemporaryStorage & 0x00FF) == 0x00);
     SetFlagInStatusRegister(StatusRegisterFlags::N, TemporaryStorage & 0x0080);
-    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::ImplicitMode || OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::AccumulatorMode)
+    if (OpcodeTable.at(CurrentOpcode).addressingMode == &CPU::IMP)
         Accumulator = TemporaryStorage & 0x00FF;
     else
         WriteByteToMemory(AbsoluteAddress, TemporaryStorage & 0x00FF);

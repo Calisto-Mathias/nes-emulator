@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <array>
 #include "CPU.hpp"
+#include "Typedefs.hpp"
 
 class Bus {
     public:
