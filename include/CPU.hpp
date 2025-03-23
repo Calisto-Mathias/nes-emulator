@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <array>
 #include <string>
+#include <map>
 #include "Typedefs.hpp"
 #include "Constants.hpp"
 
@@ -115,6 +116,7 @@ class CPU
         inline uint8_t GetNumberOfBaseClockCyclesLeftForOperation(const Opcode);
         inline bool GetFlagFromStatusRegister(const StatusRegisterFlags::Flags);
         inline void SetFlagInStatusRegister(const StatusRegisterFlags::Flags, const bool);
+        std::map<Address, std::string> Disassemble(Address, Address);
 
     private:
         Register Accumulator;

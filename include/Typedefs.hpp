@@ -33,11 +33,11 @@ struct Instruction {
     AddressingMode addressingMode;
     OperationFunction operation;
     const uint8_t cyclesCount;
+    std::string name;
 
-    Instruction() : addressingMode(nullptr), operation(nullptr), cyclesCount(0) {}
-    
-    Instruction(AddressingMode mode, OperationFunction op, uint8_t cycles)
-        : addressingMode(mode), operation(op), cyclesCount(cycles) {}
+    Instruction() : addressingMode(nullptr), operation(nullptr), cyclesCount(0), name("") {}
+    Instruction(AddressingMode mode, OperationFunction op, uint8_t cycles, std::string nameSetter)
+        : addressingMode(mode), operation(op), cyclesCount(cycles), name(nameSetter) {}
 };
 
 #endif
