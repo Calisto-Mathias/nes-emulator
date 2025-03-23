@@ -685,3 +685,22 @@ bool CPU::TYA() {
 bool CPU::XXX() {
     return 0;
 }
+
+void CPU::Reset() {
+    Accumulator = 0;
+    X = 0;
+    Y = 0;
+    StackPointer = 0xFD;
+    StatusRegister = 0x00 | StatusRegisterFlags::U;
+
+    AbsoluteAddress = 0xFFFC;
+    Byte lowByte = FetchByteFromMemory(AbsoluteAddress);
+    Byte highByte = FetchByteFromMemory(AbsoluteAddress + 1);
+
+    ProgramCounter = (highByte << 8) | lowByte;
+    RelativeAddress = 0x0000;
+    AbsoluteAddress = 0x0000;
+    FetchedData = 0x00;
+
+    CyclesLeft = 8;
+}
