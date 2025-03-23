@@ -1,21 +1,36 @@
 #ifndef BUS_HPP
 #define BUS_HPP
 
-#include <stdint.h>
+#include <cstdint>
 #include <array>
-#include "CPU.hpp"
-#include "Typedefs.hpp"
 
-class Bus {
-    public:
-        Bus();
-        ~Bus();
-        // Devices on the bus
-        CPU cpu;
-        std::array<uint8_t, 64 * 1024> ram;
-        // Read and write functions
-        void write(uint16_t addr, uint8_t data);
-        uint8_t read(uint16_t addr, bool bReadOnly = false);
+class CPU;
+class Cartridge;
+class PPU;
+
+class Bus
+{
+public:
+	Bus();
+	~Bus();
+
+public:
+	CPU cpu;	
+    PPU ppu;
+	std::shared_ptr<Cartridge> cart;
+	Byte cpuRam[MEMORY_SIZE];
+
+public:
+	void cpuWrite(Address, Byte);
+	Byte cpuRead(Address, bool bReadOnly = false);
+
+private:
+	uint32_t nSystemClockCounter = 0;
+
+public:
+	void insertCartridge(const std::shared_ptr<Cartridge>& cartridge);
+	void reset();
+	void clock();
 };
 
 #endif
