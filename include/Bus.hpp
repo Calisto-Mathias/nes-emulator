@@ -1,12 +1,13 @@
 #ifndef BUS_HPP
 #define BUS_HPP
 
-#include <cstdint>
+#include <memory>
 #include <array>
 
-class CPU;
-class Cartridge;
-class PPU;
+#include "Typedefs.hpp"
+#include "PPU.hpp"
+#include "Cartridge.hpp"
+#include "CPU.hpp"
 
 class Bus
 {
@@ -18,7 +19,7 @@ public:
 	CPU cpu;	
     PPU ppu;
 	std::shared_ptr<Cartridge> cart;
-	Byte cpuRam[MEMORY_SIZE];
+	std::array<Byte, MEMORY_SIZE> cpuRam;
 
 public:
 	void cpuWrite(Address, Byte);
