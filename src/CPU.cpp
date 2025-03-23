@@ -746,3 +746,10 @@ void CPU::NMI() {
 
     CyclesLeft = 8;
 }
+
+void
+
+inline uint8_t CPU::GetNumberOfBaseClockCyclesLeftForOperation(const Opcode opcode)
+{
+    return OpcodeTable.at(opcode).cyclesCount;
+}
