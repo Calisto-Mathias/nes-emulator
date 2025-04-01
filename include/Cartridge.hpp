@@ -5,18 +5,24 @@
 #include "Mappers/Mapper_000.hpp"
 #include <vector>
 #include <memory>
+#include <string>
 
 class Cartridge
 {
 public:
-    Cartridge(const std::string&);
+    // Default constructor needed for initial setup in Emulator class
+    Cartridge() = default;
+    Cartridge(const std::string& filename);
     ~Cartridge();
 
-    bool cpuWrite(Address, Byte);
-	bool cpuRead(Address, Byte&);
-
-    bool ppuWrite(Address, Byte);
-    bool ppuRead(Address, Byte&);
+    bool cpuWrite(Address addr, Byte data);
+    bool cpuRead(Address addr, Byte&);
+    
+    bool ppuWrite(Address addr, Byte data);
+    bool ppuRead(Address addr, Byte&);
+    
+    // Add load method to handle ROM loading
+    bool load(const std::string& filename);
 
     std::vector<Byte> vPRGMemory;
     std::vector<Byte> vCHRMemory;

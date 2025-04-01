@@ -1,17 +1,24 @@
 #ifndef TYPEDEFS_HPP
 #define TYPEDEFS_HPP
 
-#include "CPU.hpp"
+#include <cstdint>
+#include <string>
 
 class CPU;
 
-typedef uint8_t Byte;
-typedef uint16_t Address;
+// typedef uint8_t Byte;
+// typedef uint16_t Address;
 
-typedef uint8_t Register;
-typedef uint16_t LargeRegister;
+// typedef uint8_t Register;
+// typedef uint16_t LargeRegister;
 
-typedef Byte Opcode;
+// typedef Byte Opcode;
+
+using Byte = uint8_t;
+using Address = uint16_t;
+using Register = uint8_t;
+using LargeRegister = uint16_t;
+using Opcode = uint8_t;
 
 namespace StatusRegisterFlags {
     enum Flags{
@@ -26,8 +33,8 @@ namespace StatusRegisterFlags {
     };
 }
 
-typedef bool (CPU::*AddressingMode)();
-typedef bool (CPU::*OperationFunction)();
+using AddressingMode = bool (CPU::*)();
+using OperationFunction = bool (CPU::*)();
 
 struct Instruction {
     AddressingMode addressingMode;

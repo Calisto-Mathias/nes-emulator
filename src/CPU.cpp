@@ -35,14 +35,12 @@ CPU::Clock()
 }
 
 // read and writes
-uint8_t CPU::FetchByteFromMemory(uint16_t addr)
-{
-    return bus->read(addr);
+Byte CPU::FetchByteFromMemory(const Address addr) {
+    return bus->cpuRead(addr, false);  // Changed from read to cpuRead
 }
 
-void CPU::WriteByteToMemory(uint16_t addr, uint8_t data)
-{
-    bus->write(addr, data);
+void CPU::WriteByteToMemory(const Address addr, const Byte data) {
+    bus->cpuWrite(addr, data);  // Changed from write to cpuWrite
 }
 
 bool
