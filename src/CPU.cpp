@@ -1,95 +1,19 @@
-#include "CPU.h"
-#include "CPUOpcodes.h"
-#include "Log.h"
 #include <iomanip>
+#include "CPU.h"
+#include "Log.h"
+#include "CPUOpcodes.h"
 
 namespace sn
 {
-    CPU::CPU(MainBus &mem) :
-        m_pendingNMI(false),
-        m_pendingIRQ(false),
-        m_bus(mem)
-    {}
-
-    void CPU::reset()
+    Byte CPU::pullStack()
     {
-        reset(readAddress(ResetVector));
-    }
-
-    void CPU::reset(Address start_addr)
-    {
-        m_skipCycles = m_cycles = 0;
-        r_A = r_X = r_Y = 0;
-        f_I = true;
-        f_C = f_D = f_N = f_V = f_Z = false;
-        r_PC = start_addr;
-        r_SP = 0xfd; //documented startup state
-    }
-
-    void CPU::interrupt(InterruptType type)
-    {
-        switch (type)
-        {
-        case InterruptType::NMI:
-            m_pendingNMI = true;
-            break;
-
-        case InterruptType::IRQ:
-            m_pendingIRQ = true;
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    void CPU::interruptSequence(InterruptType type)
-    {
-        if (f_I && type != NMI && type != BRK_)
-            return;
-
-        if (type == BRK_) //Add one if BRK, a quirk of 6502
-            ++r_PC;
-
-        pushStack(r_PC >> 8);
-        pushStack(r_PC);
-
-        Byte flags = f_N << 7 |
-                     f_V << 6 |
-                       1 << 5 | //unused bit, supposed to be always 1
-          (type == BRK_) << 4 | //B flag set if BRK
-                     f_D << 3 |
-                     f_I << 2 |
-                     f_Z << 1 |
-                     f_C;
-        pushStack(flags);
-
-        f_I = true;
-
-        switch (type)
-        {
-            case IRQ:
-            case BRK_:
-                r_PC = readAddress(IRQVector);
-                break;
-            case NMI:
-                r_PC = readAddress(NMIVector);
-                break;
-        }
-
-        // Interrupt sequence takes 7
-        m_skipCycles += 7;
+        return m_bus.read(0x100 | ++r_SP);
     }
 
     void CPU::pushStack(Byte value)
     {
         m_bus.write(0x100 | r_SP, value);
-        --r_SP; //Hardware stacks grow downward!
-    }
-
-    Byte CPU::pullStack()
-    {
-        return m_bus.read(0x100 | ++r_SP);
+        --r_SP;
     }
 
     void CPU::setZN(Byte value)
@@ -100,15 +24,85 @@ namespace sn
 
     void CPU::skipPageCrossCycle(Address a, Address b)
     {
-        //Page is determined by the high byte
         if ((a & 0xff00) != (b & 0xff00))
             m_skipCycles += 1;
     }
 
+    Address CPU::readAddress(Address addr)
+    {
+        return m_bus.read(addr) | m_bus.read(addr + 1) << 8;
+    }
+
     void CPU::skipDMACycles()
     {
-        m_skipCycles += 513; //256 read + 256 write + 1 dummy read
-        m_skipCycles += (m_cycles & 1); //+1 if on odd cycle
+        m_skipCycles += 513;
+        m_skipCycles += (m_cycles & 1);
+    }
+
+    CPU::CPU(MainBus &mem) 
+        : m_bus(mem),
+          m_pendingNMI(false),
+          m_pendingIRQ(false)
+    {}
+
+    void CPU::reset()
+    {
+        reset(readAddress(ResetVector));
+    }
+
+    void CPU::reset(Address start_addr)
+    {
+        r_PC = start_addr;
+        r_SP = 0xfd;
+        r_A = r_X = r_Y = 0;
+        f_I = true;
+        f_C = f_D = f_N = f_V = f_Z = false;
+        m_skipCycles = m_cycles = 0;
+    }
+
+    void CPU::interrupt(InterruptType type)
+    {
+        switch (type)
+        {
+            case InterruptType::IRQ:
+                m_pendingIRQ = true;
+                break;
+            case InterruptType::NMI:
+                m_pendingNMI = true;
+                break;
+            default:
+                break;
+        }
+    }
+
+    void CPU::interruptSequence(InterruptType type)
+    {
+        if (f_I && type != NMI && type != BRK_)
+            return;
+
+        if (type == BRK_)
+            ++r_PC;
+
+        pushStack(r_PC >> 8);
+        pushStack(r_PC);
+
+        Byte flags = f_N << 7 | f_V << 6 | 1 << 5 | (type == BRK_) << 4 | f_D << 3 | f_I << 2 | f_Z << 1 | f_C;
+        pushStack(flags);
+
+        f_I = true;
+
+        switch (type)
+        {
+            case NMI:
+                r_PC = readAddress(NMIVector);
+                break;
+            case IRQ:
+            case BRK_:
+                r_PC = readAddress(IRQVector);
+                break;
+        }
+
+        m_skipCycles += 7;
     }
 
     void CPU::step()
@@ -120,7 +114,6 @@ namespace sn
 
         m_skipCycles = 0;
 
-        // NMI has higher priority, check for it first
         if (m_pendingNMI)
         {
             interruptSequence(NMI);
@@ -134,38 +127,27 @@ namespace sn
             return;
         }
 
-        int psw =    f_N << 7 |
-                     f_V << 6 |
-                       1 << 5 |
-                     f_D << 3 |
-                     f_I << 2 |
-                     f_Z << 1 |
-                     f_C;
+        int psw = f_N << 7 | f_V << 6 | 1 << 5 | f_D << 3 | f_I << 2 | f_Z << 1 | f_C;
         LOG_CPU << std::hex << std::setfill('0') << std::uppercase
-                  << std::setw(4) << +r_PC
-                  << "  "
-                  << std::setw(2) << +m_bus.read(r_PC)
-                  << "  "
-                  << "A:"   << std::setw(2) << +r_A << " "
-                  << "X:"   << std::setw(2) << +r_X << " "
-                  << "Y:"   << std::setw(2) << +r_Y << " "
-                  << "P:"   << std::setw(2) << psw << " "
-                  << "SP:"  << std::setw(2) << +r_SP  << /*std::endl;*/" "
-                  << "CYC:" << std::setw(3) << std::setfill(' ') << std::dec << ((m_cycles - 1) * 3) % 341
-                  << std::endl;
+                << std::setw(4) << +r_PC
+                << "  "
+                << std::setw(2) << +m_bus.read(r_PC)
+                << "  "
+                << "A:"   << std::setw(2) << +r_A << " "
+                << "X:"   << std::setw(2) << +r_X << " "
+                << "Y:"   << std::setw(2) << +r_Y << " "
+                << "P:"   << std::setw(2) << psw << " "
+                << "SP:"  << std::setw(2) << +r_SP  << " "
+                << "CYC:" << std::setw(3) << std::setfill(' ') << std::dec << ((m_cycles - 1) * 3) % 341
+                << std::endl;
 
         Byte opcode = m_bus.read(r_PC++);
-
         auto CycleLength = OperationCycles[opcode];
 
-        //Using short-circuit evaluation, call the other function only if the first failed
-        //ExecuteImplied must be called first and ExecuteBranch must be before ExecuteType0
         if (CycleLength && (executeImplied(opcode) || executeBranch(opcode) ||
                         executeType1(opcode) || executeType2(opcode) || executeType0(opcode)))
         {
             m_skipCycles += CycleLength;
-            //m_cycles %= 340; //compatibility with Nintendulator log
-            //m_skipCycles = 0; //for TESTING
         }
         else
         {
@@ -183,8 +165,6 @@ namespace sn
                 interruptSequence(BRK_);
                 break;
             case JSR:
-                //Push address of next instruction - 1, thus r_PC + 1 instead of r_PC + 2
-                //since r_PC and r_PC + 1 are address of subroutine
                 pushStack(static_cast<Byte>((r_PC + 1) >> 8));
                 pushStack(static_cast<Byte>(r_PC + 1));
                 r_PC = readAddress(r_PC);
@@ -213,9 +193,6 @@ namespace sn
             case JMPI:
                 {
                     Address location = readAddress(r_PC);
-                    //6502 has a bug such that the when the vector of anindirect address begins at the last byte of a page,
-                    //the second byte is fetched from the beginning of that page rather than the beginning of the next
-                    //Recreating here:
                     Address Page = location & 0xff00;
                     r_PC = m_bus.read(location) |
                            m_bus.read(Page | ((location + 1) & 0xff)) << 8;
@@ -225,8 +202,8 @@ namespace sn
                 {
                     Byte flags = f_N << 7 |
                                  f_V << 6 |
-                                   1 << 5 | //supposed to always be 1
-                                   1 << 4 | //PHP pushes with the B flag as 1, no matter what
+                                   1 << 5 |
+                                   1 << 4 |
                                  f_D << 3 |
                                  f_I << 2 |
                                  f_Z << 1 |
@@ -322,11 +299,8 @@ namespace sn
     {
         if ((opcode & BranchInstructionMask) == BranchInstructionMaskResult)
         {
-            //branch is initialized to the condition required (for the flag specified later)
             bool branch = opcode & BranchConditionMask;
 
-            //set branch to true if the given condition is met by the given flag
-            //We use xnor here, it is true if either both operands are true or false
             switch (opcode >> BranchOnFlagShift)
             {
                 case Negative:
@@ -348,10 +322,8 @@ namespace sn
             if (branch)
             {
                 int8_t offset = m_bus.read(r_PC++);
-                // skip 1 cycle since branch is taken
                 ++m_skipCycles;
                 auto newPC = static_cast<Address>(r_PC + offset);
-                // skip 1 additional cycle if page is crossed
                 skipPageCrossCycle(r_PC, newPC);
                 r_PC = newPC;
             }
@@ -366,7 +338,7 @@ namespace sn
     {
         if ((opcode & InstructionModeMask) == 0x1)
         {
-            Address location = 0; //Location of the operand, could be in RAM
+            Address location = 0;
             auto op = static_cast<Operation1>((opcode & OperationMask) >> OperationShift);
             switch (static_cast<AddrMode1>(
                     (opcode & AddrModeMask) >> AddrModeShift))
@@ -374,7 +346,6 @@ namespace sn
                 case IndexedIndirectX:
                     {
                         Byte zero_addr = r_X + m_bus.read(r_PC++);
-                        //Addresses wrap in zero page mode, thus pass through a mask
                         location = m_bus.read(zero_addr & 0xff) | m_bus.read((zero_addr + 1) & 0xff) << 8;
                     }
                     break;
@@ -398,7 +369,6 @@ namespace sn
                     }
                     break;
                 case IndexedX:
-                    // Address wraps around in the zero page
                     location = (m_bus.read(r_PC++) + r_X) & 0xff;
                     break;
                 case AbsoluteY:
@@ -437,10 +407,7 @@ namespace sn
                     {
                         Byte operand = m_bus.read(location);
                         std::uint16_t sum = r_A + operand + f_C;
-                        //Carry forward or UNSIGNED overflow
                         f_C = sum & 0x100;
-                        //SIGNED overflow, would only happen if the sign of sum is
-                        //different from BOTH the operands
                         f_V = (r_A ^ sum) & (operand ^ sum) & 0x80;
                         r_A = static_cast<Byte>(sum);
                         setZN(r_A);
@@ -455,13 +422,9 @@ namespace sn
                     break;
                 case SBC:
                     {
-                        //High carry means "no borrow", thus negate and subtract
                         std::uint16_t subtrahend = m_bus.read(location),
                                  diff = r_A - subtrahend - !f_C;
-                        //if the ninth bit is 1, the resulting number is negative => borrow => low carry
                         f_C = !(diff & 0x100);
-                        //Same as ADC, except instead of the subtrahend,
-                        //substitute with it's one complement
                         f_V = (r_A ^ diff) & (~subtrahend ^ diff) & 0x80;
                         r_A = diff;
                         setZN(diff);
@@ -512,7 +475,6 @@ namespace sn
                             index = r_Y;
                         else
                             index = r_X;
-                        //The mask wraps address around zero page
                         location = (location + index) & 0xff;
                     }
                     break;
@@ -543,7 +505,6 @@ namespace sn
                         auto prev_C = f_C;
                         f_C = r_A & 0x80;
                         r_A <<= 1;
-                        //If Rotating, set the bit-0 to the the previous carry
                         r_A = r_A | (prev_C && (op == ROL));
                         setZN(r_A);
                     }
@@ -564,7 +525,6 @@ namespace sn
                         auto prev_C = f_C;
                         f_C = r_A & 1;
                         r_A >>= 1;
-                        //If Rotating, set the bit-7 to the previous carry
                         r_A = r_A | (prev_C && (op == ROR)) << 7;
                         setZN(r_A);
                     }
@@ -625,7 +585,6 @@ namespace sn
                     r_PC += 2;
                     break;
                 case Indexed:
-                    // Address wraps around in the zero page
                     location = (m_bus.read(r_PC++) + r_X) & 0xff;
                     break;
                 case AbsoluteIndexed:
@@ -675,11 +634,5 @@ namespace sn
         }
         return false;
     }
-
-    Address CPU::readAddress(Address addr)
-    {
-        return m_bus.read(addr) | m_bus.read(addr + 1) << 8;
-    }
-
 };
 

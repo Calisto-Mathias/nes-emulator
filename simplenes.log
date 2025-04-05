@@ -1,9 +1,0 @@
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:52] Reading ROM from path: Tetris.nes
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:70] Reading header, it dictates: 
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:73] 16KB PRG-ROM Banks: 2
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:81] 8KB CHR-ROM Banks: 2
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:91] Name Table Mirroring: Vertical
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:95] Mapper #: 1
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:98] Extended (CPU) RAM: false
-[/home/nish/proj/cpp/SimpleNES/src/Cartridge.cpp:112] ROM is NTSC compatible.
-[/home/nish/proj/cpp/SimpleNES/src/MapperSxROM.cpp:30] Using CHR-ROM

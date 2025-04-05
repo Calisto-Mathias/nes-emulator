@@ -1,53 +1,64 @@
-#include "Mapper.h"
-#include "CPUOpcodes.h"
 #include "MapperNROM.h"
 #include "MapperSxROM.h"
-#include "MapperMMC3.h"
+#include "CPUOpcodes.h"
 #include "MapperUxROM.h"
 #include "MapperCNROM.h"
 #include "MapperAxROM.h"
+#include "MapperMMC3.h"
 #include "MapperColorDreams.h"
 #include "MapperGxROM.h"
+#include "Mapper.h"
 
-namespace sn
-{
+namespace sn {
     NameTableMirroring Mapper::getNameTableMirroring()
-    {
+{
         return static_cast<NameTableMirroring>(m_cartridge.getNameTableMirroring());
     }
 
-    std::unique_ptr<Mapper> Mapper::createMapper(Mapper::Type mapper_t, sn::Cartridge& cart, std::function<void()> interrupt_cb, std::function<void(void)> mirroring_cb)
+ std::unique_ptr<Mapper> Mapper::createMapper(Mapper::Type type, 
+        sn::Cartridge& cart, 
+        std::function<void()> irq_callback, 
+        std::function<void(void)> mirroring_callback)
     {
-        std::unique_ptr<Mapper> ret(nullptr);
-        switch (mapper_t)
+        std::unique_ptr<Mapper> m = nullptr;
+        
+      switch (type)
         {
-            case NROM:
-                ret.reset(new MapperNROM(cart));
+            case NROM: {
+                m = std::make_unique<MapperNROM>(cart);
+                break;}
+                
+case SxROM:
+                  m = std::make_unique<MapperSxROM>(cart, mirroring_callback);
                 break;
-            case SxROM:
-                ret.reset(new MapperSxROM(cart, mirroring_cb));
-                break;
+                
             case UxROM:
-                ret.reset(new MapperUxROM(cart));
-                break;
+                m = std::make_unique<MapperUxROM>(cart);break;
+                
             case CNROM:
-                ret.reset(new MapperCNROM(cart));
+                m = std::make_unique<MapperCNROM>(cart);
                 break;
+                
             case MMC3:
-                ret.reset(new MapperMMC3(cart, interrupt_cb, mirroring_cb));
-                break;
+                m = std::make_unique<MapperMMC3>(cart, irq_callback, mirroring_callback); break;
+                
             case AxROM:
-                ret.reset(new MapperAxROM(cart, mirroring_cb));
+                m = std::make_unique<MapperAxROM>(cart, mirroring_callback);
                 break;
+                
             case ColorDreams:
-                ret.reset(new MapperColorDreams(cart, mirroring_cb));
+                m = std::make_unique<MapperColorDreams>(cart, mirroring_callback);
                 break;
-            case GxROM:
-                ret.reset(new MapperGxROM(cart, mirroring_cb));
-                break;
-            default:
+                
+            case GxROM: {
+                m = std::make_unique<MapperGxROM>(cart, mirroring_callback);
+                } break;
+                
+default:
                 break;
         }
-        return ret;
+        
+        return m;
     }
+
 }
